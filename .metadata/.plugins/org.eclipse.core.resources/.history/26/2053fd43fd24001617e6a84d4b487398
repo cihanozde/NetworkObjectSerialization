@@ -1,0 +1,57 @@
+package org.csystem.client;
+
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+
+import org.csystem.utils.Keyboard;
+
+import common.Person;
+
+public class App {
+
+	public static void main(String[] args) 
+	{
+		Keyboard kb = new Keyboard();
+		
+		int code = kb.getInt("Seçeneği giriniz");		
+		
+		try (Socket socket = new Socket("192.168.2.253", 50500)) {
+			//ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+			ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+			
+			System.out.println("server1");
+			oos.writeInt(code);
+			oos.flush();
+			System.out.println("server");
+			
+			//boolean success = ois.readBoolean();
+			
+			if (true) {
+				if (code == 1) {					
+					String name = kb.getLine("İsim giriniz");
+					int number = kb.getInt("Numarayı giriniz", "Geçersiz format");
+					char op = kb.getLine("Evli/Bekar?[e/b]").charAt(0);
+				
+					Person p = new Person(name, number, op == 'e' ? true : false);
+					oos.writeObject(p);
+					oos.flush();				
+				}
+				else if (code == 2) {
+				//	int size = ois.readInt();
+					
+//					for (int i = 0; i < size; ++i) 
+//						System.out.println(ois.readObject());					
+				}
+			}
+			else
+				System.out.println("Geçersiz kod");		
+			
+		}	
+		catch (Exception ex) {
+			System.err.println(ex.getMessage());
+		}
+		
+	}
+
+}

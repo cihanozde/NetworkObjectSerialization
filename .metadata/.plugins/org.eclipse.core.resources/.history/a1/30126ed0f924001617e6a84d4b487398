@@ -1,0 +1,33 @@
+package org.csystem.client;
+
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+
+import org.csystem.utils.Keyboard;
+
+import common.Person;
+
+public class App {
+
+	public static void main(String[] args) 
+	{
+		Keyboard kb = new Keyboard();		
+		
+		String name = kb.getLine("İsim giriniz");
+		int number = kb.getInt("Numarayı giriniz", "Geçersiz format");
+		char op = kb.getLine("Evli/Bekar?[e/b]").charAt(0);
+		
+		try (Socket socket = new Socket("192.168.2.253", 50500)) {
+			Person p = new Person(name, number, op == 'e' ? true : false);
+			
+			ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+			
+			oos.writeObject(p);
+			oos.flush();
+		}	
+		catch (Exception ex) {
+			System.err.println(ex.getMessage());
+		}
+	}
+
+}

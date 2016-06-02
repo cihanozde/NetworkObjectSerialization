@@ -1,0 +1,108 @@
+package org.csystem.server;
+
+import java.io.Closeable;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import common.Person;
+
+public class Server implements Closeable {
+	private ExecutorService m_threadPool;
+	private static List<Person> ms_people;
+	
+	static {
+		ms_people = new ArrayList<>();
+	}
+	
+	private void sendPerson(ObjectOutputStream oos, Person p)
+	{
+		try {
+			oos.writeObject(p);
+			//oos.flush();
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
+		}		
+	}
+	
+	private void handleClient(Socket clientSocket)
+	{		
+		System.out.println("Client");
+		try {
+			ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
+			ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
+			
+			System.out.println("Client");
+			int code = ois.readInt();		
+			System.out.println(code);
+			
+			if (code == 1) {
+				oos.writeBoolean(true);
+				Person p = (Person)ois.readObject();
+				
+				System.out.println(p);
+				ms_people.add(p);
+			}
+			else if (code == 2) {
+				oos.writeBoolean(true);
+				oos.writeInt(ms_people.size());
+				ms_people.stream().forEach(p -> sendPerson(oos, p));
+			}
+			else 
+				oos.writeBoolean(false);
+			
+			oos.flush();			
+		}
+		catch (Exception ex) {
+			System.err.println(ex.getMessage());
+		}
+		finally {
+			try {
+				clientSocket.shutdownInput();
+				clientSocket.shutdownOutput();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}		
+	}
+	
+	private void acceptAndContinue(ServerSocket socket)
+	{
+		try {
+			Socket clientSocket = socket.accept();		
+			
+			m_threadPool.submit(() -> handleClient(clientSocket));			
+		} 
+		catch (Exception e) {
+			System.err.println(e.getMessage());
+		}
+	}
+	public Server()
+	{
+		m_threadPool = Executors.newFixedThreadPool(20);		
+	}
+	public void run()
+	{
+		try (ServerSocket socket = new ServerSocket(50500)) {
+			System.out.println("Waiting for clients");
+			for (;;) 
+				this.acceptAndContinue(socket);			
+		}
+		catch (Exception ex) {
+			System.err.println(ex.getMessage());
+		}
+	}
+	
+	@Override
+	public void close()
+	{	
+		if (!m_threadPool.isShutdown())
+			m_threadPool.shutdown();		
+	}
+}
